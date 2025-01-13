@@ -169,7 +169,7 @@
                 class="w-full h-48 p-4 bg-gray-50/50 border-0 rounded-xl font-mono text-sm resize-none focus:ring-2 focus:ring-blue-500 transition-all dark:bg-gray-900/50 dark:text-white"
                 placeholder="Paste your JSON here..."
                 spellcheck="false"
-            ></textarea>
+            >{"name": "John Doe","job": "QA Lead","details": {"location": "New York"}}</textarea>
 
             <!-- Schema Input -->
             <div class="mt-4 hidden" id="schema-input-container">
@@ -658,6 +658,10 @@
         // Show schema input on validate button click
         validateButton.addEventListener('click', () => {
             document.getElementById('schema-input-container').classList.remove('hidden');
+        });
+         // Trigger initial load of default JSON
+        window.addEventListener('load', () => {
+            jsonInput.dispatchEvent(new Event('input'));
         });
     </script>
 </body>
