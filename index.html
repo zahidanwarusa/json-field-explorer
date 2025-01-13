@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Field Editor</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Highlight.js for syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- Sortable.js for drag-and-drop -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <!-- JSON Schema Validator -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ajv/8.12.0/ajv.min.js"></script>
+    <style>
+        /* Additional styles for backdrop blur */
+        .backdrop-blur-sm {
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+        
+        .bg-white\/80 {
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+        
+        /* Hide scrollbar but keep functionality */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Dark mode styles */
+        .dark {
+            color-scheme: dark;
+        }
+        
+        .dark .dark\:bg-gray-900 {
+            background-color: rgb(17, 24, 39);
+        }
+
+        .dark .dark\:text-white {
+            color: rgb(255, 255, 255);
+        }
+
+        /* Field type indicators */
+        .type-indicator {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+
+        .type-string { background: #e8f5e9; color: #2e7d32; }
+        .type-number { background: #e3f2fd; color: #1565c0; }
+        .type-boolean { background: #fff3e0; color: #ef6c00; }
+        .type-object { background: #f3e5f5; color: #7b1fa2; }
+        .type-array { background: #fce4ec; color: #c2185b; }
+        .type-null { background: #fafafa; color: #616161; }
+
+        /* Transition animations */
+        .fade-enter {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        
+        .fade-enter-active {
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 200ms, transform 200ms;
+        }
+
+        /* Breadcrumb styles */
+        .breadcrumb-item:not(:last-child)::after {
+            content: '/';
+            margin: 0 8px;
+            color: #9ca3af;
+        }
+
+        /* Loading spinner */
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 transition-colors duration-200" id="body">
+    <div class="max-w-7xl mx-auto space-y-6">
+        <!-- Header with Theme Toggle -->
+        <div class="text-center bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm relative">
+            <button id="theme-toggle" class="absolute right-6 top-6 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+                <i icon-name="sun" class="w-5 h-5 hidden dark:inline"></i>
+                <i icon-name="moon" class="w-5 h-5 dark:hidden"></i>
+            </button>
+            <h1 class="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
+                JSON Field Editor
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-2">Modern JSON structure modification tool</p>
+        </div>
+
+        <!-- Keyboard Shortcuts Modal -->
+        <div id="shortcuts-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50">
+            <div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg max-w-md w-full">
+                <h3 class="text-lg font-semibold mb-4">Keyboard Shortcuts</h3>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span>Copy JSON</span>
+                        <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">⌘ + C</kbd>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Undo</span>
+                        <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">⌘ + Z</kbd>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Search Fields</span>
+                        <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">⌘ + F</kbd>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Toggle Dark Mode</span>
+                        <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">⌘ + D</kbd>
+                    </div>
+                </div>
+                <button class="mt-4 w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600" onclick="document.getElementById('shortcuts-modal').classList.add('hidden')">
+                    Close
+                </button>
+            </div>
+        </div>
+
+        <!-- Input Panel -->
+        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-gray-100 dark:bg-gray-800/80 dark:border-gray-700">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-2">
+                    <i icon-name="code" class="w-5 h-5 text-blue-500"></i>
+                    <span class="font-medium text-gray-900 dark:text-white">Input JSON</span>
+                </div>
+                <div class="flex space-x-2">
+                    <button id="format-button" class="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-gray-100 hover:bg-gray-200 text-gray-700">
+                        <i icon-name="type" class="w-4 h-4 mr-1.5"></i>
+                        Format
+                    </button>
+                    <button id="validate-button" class="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-gray-100 hover:bg-gray-200 text-gray-700">
+                        <i icon-name="check-circle" class="w-4 h-4 mr-1.5"></i>
+                        Validate
+                    </button>
+                </div>
+                <div id="error-message" class="hidden flex items-center space-x-1 text-red-500 text-sm bg-red-50 px-2 py-1 rounded-full">
+                    <i icon-name="x" class="w-4 h-4"></i>
+                    <span></span>
+                </div>
+            </div>
+            
+            <textarea
+                id="json-input"
+                class="w-full h-48 p-4 bg-gray-50/50 border-0 rounded-xl font-mono text-sm resize-none focus:ring-2 focus:ring-blue-500 transition-all dark:bg-gray-900/50 dark:text-white"
+                placeholder="Paste your JSON here..."
+                spellcheck="false"
+            ></textarea>
+
+            <!-- Schema Input -->
+            <div class="mt-4 hidden" id="schema-input-container">
+                <div class="flex items-center space-x-2 mb-2">
+                    <i icon-name="file-json" class="w-4 h-4 text-blue-500"></i>
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">JSON Schema (optional)</span>
+                </div>
+                <textarea
+                    id="schema-input"
+                    class="w-full h-24 p-4 bg-gray-50/50 border-0 rounded-xl font-mono text-sm resize-none focus:ring-2 focus:ring-blue-500 transition-all dark:bg-gray-900/50 dark:text-white"
+                    placeholder="Paste your JSON Schema here for validation..."
+                    spellcheck="false"
+                ></textarea>
+            </div>
+        </div>
+
+        <!-- Fields and Preview Grid -->
+        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border border-gray-100 dark:bg-gray-800/80 dark:border-gray-700">
+            <!-- Action Bar -->
+            <div class="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700">
+                <div class="flex items-center space-x-3">
+                    <span class="font-medium text-gray-900 dark:text-white">Fields & Preview</span>
+                    <span id="fields-count" class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs dark:bg-blue-900 dark:text-blue-200">
+                        0 fields
+                    </span>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <!-- Search Input -->
+                    <div class="relative">
+                        <input
+                            type="text"
+                            id="search-input"
+                            placeholder="Search fields..."
+                            class="w-48 px-3 py-1.5 pl-8 rounded-full text-sm bg-gray-50 border-0 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                        />
+                        <i icon-name="search" class="w-4 h-4 absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    </div>
+
+                    <div class="flex space-x-2">
+                        <button
+                            id="shortcuts-button"
+                            class="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                        >
+                            <i icon-name="keyboard" class="w-4 h-4 mr-1.5"></i>
+                            Shortcuts
+                        </button>
+
+                        <button
+                            id="undo-button"
+                            disabled
+                            class="inline-flex items-center px-3 py-1.5 rounded-full text-sm transition-all bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500"
+                        >
+                            <i icon-name="rotate-ccw" class="w-4 h-4 mr-1.5"></i>
+                            Undo
+                        </button>
+                        
+                        <button
+                            id="copy-button"
+                            disabled
+                            class="inline-flex items-center px-3 py-1.5 rounded-full text-sm transition-all duration-200 transform active:scale-95 bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500"
+                        >
+                            <i icon-name="copy" class="w-4 h-4 mr-1.5"></i>
+                            <span>Copy JSON</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Breadcrumbs -->
+            <div class="px-6 py-2 border-b border-gray-100 dark:border-gray-700 flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400" id="breadcrumbs">
+                <i icon-name="folder" class="w-4 h-4"></i>
+                <div class="flex items-center" id="breadcrumb-items">
+                    <span class="breadcrumb-item">root</span>
+                </div>
+            </div>
+
+            <!-- Two Column Layout -->
+            <div class="grid grid-cols-2 divide-x divide-gray-100 dark:divide-gray-700">
+                <!-- Fields List -->
+                <div class="p-6">
+                    <div class="bg-gray-50/50 rounded-xl p-2 dark:bg-gray-900/50">
+                        <div id="fields-list" class="max-h-[calc(100vh-600px)] overflow-y-auto hide-scrollbar">
+                            <!-- Fields will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- JSON Preview -->
+                <div class="p-6">
+                    <div class="relative">
+                        <div class="absolute top-2 right-2 flex items-center space-x-1 text-xs text-gray-500 bg-white/80 px-2 py-1 rounded-full dark:bg-gray-800/80 dark:text-gray-400">
+                            <i icon-name="eye" class="w-3 h-3"></i>
+                            <span>Preview</span>
+                        </div>
+                        <div class="bg-gray-50/50 rounded-xl p-4 max-h-[calc(100vh-600px)] overflow-auto hide-scrollbar dark:bg-gray-900/50">
+                            <pre id="json-preview" class="text-sm font-mono text-white"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // State management
+        let parsedJson = null;
+        let currentJson = null;
+        let activeKeys = new Set();
+        let history = [];
+        let copyTimeout = null;
+        let currentPath = [];
+        let isDarkMode = false;
+
+        // DOM Elements
+        const jsonInput = document.getElementById('json-input');
+        const schemaInput = document.getElementById('schema-input');
+        const errorMessage = document.getElementById('error-message');
+        const fieldsCount = document.getElementById('fields-count');
+        const fieldsList = document.getElementById('fields-list');
+        const jsonPreview = document.getElementById('json-preview');
+        const undoButton = document.getElementById('undo-button');
+        const copyButton = document.getElementById('copy-button');
+        const searchInput = document.getElementById('search-input');
+        const formatButton = document.getElementById('format-button');
+        const validateButton = document.getElementById('validate-button');
+        const themeToggle = document.getElementById('theme-toggle');
+        const shortcutsButton = document.getElementById('shortcuts-button');
+        const breadcrumbItems = document.getElementById('breadcrumb-items');
+
+        // Initialize Sortable
+        new Sortable(fieldsList, {
+            animation: 150,
+            ghostClass: 'bg-blue-50',
+            onEnd: function(evt) {
+                // Handle reordering if needed
+                updateUI();
+            }
+        });
+
+        // Show error message
+        function showError(message) {
+            errorMessage.classList.remove('hidden');
+            errorMessage.querySelector('span').textContent = message;
+        }
+
+        // Hide error message
+        function hideError() {
+            errorMessage.classList.add('hidden');
+        }
+
+        // Get type of value with more specific information
+        function getDetailedType(value) {
+            if (value === null) return 'null';
+            if (Array.isArray(value)) return 'array';
+            return typeof value;
+        }
+
+        // Create type indicator element
+        function createTypeIndicator(type) {
+            const span = document.createElement('span');
+            span.className = `type-indicator type-${type}`;
+            span.textContent = type;
+            return span;
+        }
+
+        // Extract all keys from an object
+        function extractKeys(obj, prefix = '') {
+            const keys = new Set();
+            
+            function traverse(obj, prefix = '') {
+                Object.entries(obj).forEach(([key, value]) => {
+                    const fullPath = prefix ? `${prefix}.${key}` : key;
+                    keys.add(fullPath);
+                    if (value && typeof value === 'object') {
+                        traverse(value, fullPath);
+                    }
+                });
+            }
+            
+            traverse(obj, prefix);
+            return keys;
+        }
+
+        // Generate JSON based on selected fields
+        function generateJsonFromKeys(baseJson, selectedKeys) {
+            const newJson = {};
+            
+            function buildJson(obj, target, prefix = '') {
+                Object.entries(obj).forEach(([key, value]) => {
+                    const fullPath = prefix ? `${prefix}.${key}` : key;
+                    
+                    if (typeof value === 'object' && value !== null) {
+                        const hasSelectedNestedFields = Array.from(selectedKeys).some(
+                            selectedKey => selectedKey.startsWith(fullPath + '.')
+                        );
+                        
+                        if (hasSelectedNestedFields || selectedKeys.has(fullPath)) {
+                            target[key] = Array.isArray(value) ? [] : {};
+                            buildJson(value, target[key], fullPath);
+                        }
+                    } else if (selectedKeys.has(fullPath)) {
+                        target[key] = value;
+                    }
+                });
+            }
+            
+            buildJson(baseJson, newJson);
+            return newJson;
+        }
+
+        // Update breadcrumbs
+        function updateBreadcrumbs() {
+            breadcrumbItems.innerHTML = '';
+            const paths = ['root', ...currentPath];
+            
+            paths.forEach((path, index) => {
+                const span = document.createElement('span');
+                span.className = 'breadcrumb-item cursor-pointer hover:text-blue-500';
+                span.textContent = path;
+                span.onclick = () => {
+                    currentPath = paths.slice(1, index);
+                    updateUI();
+                };
+                breadcrumbItems.appendChild(span);
+            });
+        }
+
+        // Create field element
+        function createFieldElement(key) {
+            const div = document.createElement('div');
+            div.className = 'group relative flex items-center px-3 py-2 my-1 rounded-lg hover:bg-white dark:hover:bg-gray-800 cursor-pointer transition-all hover:shadow-sm';
+            
+            const keyParts = key.split('.');
+            const keyContent = document.createElement('div');
+            keyContent.className = 'flex-1 font-mono text-sm text-gray-700 dark:text-gray-300 flex items-center';
+
+            keyParts.forEach((part, i) => {
+                if (i > 0) {
+                    const chevron = document.createElement('i');
+                    chevron.setAttribute('icon-name', 'chevron-right');
+                    chevron.className = 'inline w-3 h-3 mx-1 text-gray-400';
+                    keyContent.appendChild(chevron);
+                }
+                
+                const span = document.createElement('span');
+                span.className = i === keyParts.length - 1 ? 'text-blue-600 dark:text-blue-400' : '';
+                span.textContent = part;
+                keyContent.appendChild(span);
+            });
+
+            // Add type indicator
+            const value = key.split('.').reduce((obj, key) => obj[key], parsedJson);
+            const type = getDetailedType(value);
+            keyContent.appendChild(createTypeIndicator(type));
+
+            const removeButton = document.createElement('div');
+            removeButton.className = 'opacity-0 group-hover:opacity-100 transition-all absolute right-2 transform translate-x-4 group-hover:translate-x-0';
+            removeButton.innerHTML = `
+                <span class="px-2 py-1 bg-red-50 dark:bg-red-900 text-red-500 dark:text-red-300 rounded-lg text-xs font-medium">
+                    Remove Field
+                </span>
+            `;
+
+            div.appendChild(keyContent);
+            div.appendChild(removeButton);
+            div.onclick = () => removeKey(key);
+
+            return div;
+        }
+
+        // Update UI elements
+        function updateUI() {
+            // Update fields count
+            fieldsCount.textContent = `${activeKeys.size} fields`;
+            
+            // Update fields list
+            fieldsList.innerHTML = '';
+            Array.from(activeKeys)
+                .sort()
+                .filter(key => {
+                    const search = searchInput.value.toLowerCase();
+                    return !search || key.toLowerCase().includes(search);
+                })
+                .forEach(key => {
+                    fieldsList.appendChild(createFieldElement(key));
+                });
+            
+            // Update JSON preview with syntax highlighting
+            if (currentJson) {
+                const formatted = JSON.stringify(currentJson, null, 2);
+                jsonPreview.innerHTML = hljs.highlight(formatted, {language: 'json'}).value;
+            } else {
+                jsonPreview.textContent = '';
+            }
+            
+            // Update breadcrumbs
+            updateBreadcrumbs();
+            
+            // Update button states
+            undoButton.disabled = history.length <= 1;
+            undoButton.className = `inline-flex items-center px-3 py-1.5 rounded-full text-sm transition-all ${
+                history.length <= 1 
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 hover:shadow-sm dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300'
+            }`;
+            
+            copyButton.disabled = !currentJson;
+            copyButton.className = `inline-flex items-center px-3 py-1.5 rounded-full text-sm transition-all duration-200 transform active:scale-95 ${
+                !currentJson 
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
+                    : 'bg-blue-500 hover:bg-blue-600 text-white hover:shadow-md'
+            }`;
+
+            // Refresh icons
+            lucide.createIcons();
+        }
+
+        // Format JSON
+        function formatJson() {
+            try {
+                const input = jsonInput.value.trim();
+                if (input) {
+                    const formatted = JSON.stringify(JSON.parse(input), null, 2);
+                    jsonInput.value = formatted;
+                    hideError();
+                }
+            } catch (err) {
+                showError('Invalid JSON');
+            }
+        }
+
+        // Validate JSON against schema
+        function validateJson() {
+            try {
+                const schemaText = schemaInput.value.trim();
+                if (!schemaText) {
+                    showError('Please provide a JSON Schema');
+                    return;
+                }
+
+                const schema = JSON.parse(schemaText);
+                const ajv = new Ajv();
+                const validate = ajv.compile(schema);
+                const valid = validate(parsedJson);
+
+                if (!valid) {
+                    showError(`Validation Error: ${validate.errors[0].message}`);
+                } else {
+                    showError('JSON is valid');
+                    setTimeout(hideError, 2000);
+                }
+            } catch (err) {
+                showError('Invalid JSON Schema');
+            }
+        }
+
+        // Toggle dark mode
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('dark');
+            updateUI();
+        }
+
+        // Event Listeners
+        jsonInput.addEventListener('input', (e) => {
+            try {
+                const input = e.target.value.trim();
+                if (input) {
+                    parsedJson = JSON.parse(input);
+                    currentJson = parsedJson;
+                    activeKeys = extractKeys(parsedJson);
+                    history = [{ json: parsedJson, keys: new Set(activeKeys) }];
+                    hideError();
+                } else {
+                    parsedJson = null;
+                    currentJson = null;
+                    activeKeys = new Set();
+                    history = [];
+                }
+                updateUI();
+            } catch (err) {
+                showError('Please enter valid JSON');
+                parsedJson = null;
+                currentJson = null;
+                activeKeys = new Set();
+                history = [];
+                updateUI();
+            }
+        });
+
+        searchInput.addEventListener('input', updateUI);
+        formatButton.addEventListener('click', formatJson);
+        validateButton.addEventListener('click', validateJson);
+        themeToggle.addEventListener('click', toggleDarkMode);
+        shortcutsButton.addEventListener('click', () => {
+            document.getElementById('shortcuts-modal').classList.remove('hidden');
+        });
+
+        // Handle field removal
+        function removeKey(keyPath) {
+            const newKeys = new Set(activeKeys);
+            newKeys.delete(keyPath);
+            
+            const newJson = generateJsonFromKeys(parsedJson, newKeys);
+            
+            activeKeys = newKeys;
+            currentJson = newJson;
+            history.push({ json: newJson, keys: new Set(newKeys) });
+            
+            updateUI();
+        }
+
+        // Handle undo
+        undoButton.addEventListener('click', () => {
+            if (history.length > 1) {
+                history.pop();
+                const previousState = history[history.length - 1];
+                
+                currentJson = previousState.json;
+                activeKeys = new Set(previousState.keys);
+                
+                updateUI();
+            }
+        });
+
+        // Handle copy to clipboard
+        copyButton.addEventListener('click', async () => {
+            if (!currentJson) return;
+            
+            try {
+                await navigator.clipboard.writeText(JSON.stringify(currentJson, null, 2));
+                
+                const originalContent = copyButton.innerHTML;
+                copyButton.innerHTML = `
+                    <i icon-name="check" class="w-4 h-4 mr-1.5"></i>
+                    <span>Copied!</span>
+                `;
+                copyButton.className = 'inline-flex items-center px-3 py-1.5 rounded-full text-sm transition-all duration-200 bg-green-500 text-white';
+                lucide.createIcons();
+                
+                if (copyTimeout) clearTimeout(copyTimeout);
+                
+                copyTimeout = setTimeout(() => {
+                    copyButton.innerHTML = originalContent;
+                    copyButton.className = 'inline-flex items-center px-3 py-1.5 rounded-full text-sm transition-all duration-200 bg-blue-500 hover:bg-blue-600 text-white hover:shadow-md';
+                    lucide.createIcons();
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy:', err);
+                showError('Failed to copy to clipboard');
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.metaKey || e.ctrlKey) {
+                switch (e.key.toLowerCase()) {
+                    case 'c':
+                        if (!jsonInput.matches(':focus') && !schemaInput.matches(':focus')) {
+                            e.preventDefault();
+                            copyButton.click();
+                        }
+                        break;
+                    case 'z':
+                        if (!jsonInput.matches(':focus') && !schemaInput.matches(':focus')) {
+                            e.preventDefault();
+                            undoButton.click();
+                        }
+                        break;
+                    case 'f':
+                        e.preventDefault();
+                        searchInput.focus();
+                        break;
+                    case 'd':
+                        e.preventDefault();
+                        toggleDarkMode();
+                        break;
+                }
+            }
+        });
+
+        // Show schema input on validate button click
+        validateButton.addEventListener('click', () => {
+            document.getElementById('schema-input-container').classList.remove('hidden');
+        });
+    </script>
+</body>
+</html>
