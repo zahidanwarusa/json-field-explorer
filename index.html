@@ -575,7 +575,42 @@
         // Handle field removal
         function removeKey(keyPath) {
             const newKeys = new Set(activeKeys);
-            newKeys.delete(keyPath);
+            
+            // Remove the key and all its children
+            Array.from(activeKeys).forEach(key => {
+                if (key === keyPath || key.startsWith(keyPath + '.')) {
+                    newKeys.delete(key);
+                }
+            });
+            
+            // Check for and remove empty parent objects
+            const allRemainingKeys = Array.from(newKeys);
+            const keysToRemove = new Set();
+            
+            allRemainingKeys.forEach(key => {
+                const parts = key.split('.');
+                if (parts.length > 1) {
+                    const parentPath = parts.slice(0, -1).join('.');
+                    const siblings = allRemainingKeys.filter(k => 
+                        k !== key && 
+                        k.startsWith(parentPath + '.') && 
+                        !k.slice(parentPath.length + 1).includes('.')
+                    );
+                    
+                    if (siblings.length === 0) {
+                        // No siblings found, check if parent is an empty object
+                        const parentValue = parentPath.split('.').reduce((obj, key) => obj?.[key], parsedJson);
+                        if (typeof parentValue === 'object' && !Array.isArray(parentValue)) {
+                            keysToRemove.add(parentPath);
+                        }
+                    }
+                }
+            });
+            
+            // Remove empty parent objects
+            keysToRemove.forEach(key => {
+                newKeys.delete(key);
+            });
             
             const newJson = generateJsonFromKeys(parsedJson, newKeys);
             
@@ -659,7 +694,8 @@
         validateButton.addEventListener('click', () => {
             document.getElementById('schema-input-container').classList.remove('hidden');
         });
-         // Trigger initial load of default JSON
+
+        // Trigger initial load of default JSON
         window.addEventListener('load', () => {
             jsonInput.dispatchEvent(new Event('input'));
         });
