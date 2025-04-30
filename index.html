@@ -4,51 +4,373 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JSON Field Editor</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Removed Tailwind CSS -->
+    
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    
     <!-- Highlight.js for syntax highlighting -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    
     <!-- Sortable.js for drag-and-drop -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    
     <!-- JSON Schema Validator -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ajv/8.12.0/ajv.min.js"></script>
+    
     <style>
-        /* Additional styles for backdrop blur */
-        .backdrop-blur-sm {
+        /* Base Styles */
+        :root {
+            --color-white: #ffffff;
+            --color-black: #000000;
+            --color-blue-50: #eff6ff;
+            --color-blue-100: #dbeafe;
+            --color-blue-400: #60a5fa;
+            --color-blue-500: #3b82f6;
+            --color-blue-600: #2563eb;
+            --color-blue-700: #1d4ed8;
+            --color-blue-900: #1e3a8a;
+            --color-gray-50: #f9fafb;
+            --color-gray-100: #f3f4f6;
+            --color-gray-200: #e5e7eb;
+            --color-gray-300: #d1d5db;
+            --color-gray-400: #9ca3af;
+            --color-gray-500: #6b7280;
+            --color-gray-600: #4b5563;
+            --color-gray-700: #374151;
+            --color-gray-800: #1f2937;
+            --color-gray-900: #111827;
+            --color-red-50: #fef2f2;
+            --color-red-500: #ef4444;
+            --color-red-600: #dc2626;
+            --color-green-50: #f0fdf4;
+            --color-green-100: #dcfce7;
+            --color-green-500: #22c55e;
+            --color-green-600: #16a34a;
+            --color-purple-600: #9333ea;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --transition-all: all 0.2s ease;
+        }
+
+        /* Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Typography */
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.5;
+            color: var(--color-gray-700);
+        }
+
+        /* Base Layout */
+        body {
+            min-height: 100vh;
+            background: linear-gradient(to bottom right, var(--color-gray-50), var(--color-gray-100));
+            padding: 1.5rem;
+            transition: var(--transition-all);
+        }
+
+        .container {
+            max-width: 80rem;
+            margin: 0 auto;
+        }
+
+        .space-y-6 > * + * {
+            margin-top: 1.5rem;
+        }
+
+        /* Components */
+        .card {
+            background-color: rgba(255, 255, 255, 0.8);
             backdrop-filter: blur(4px);
             -webkit-backdrop-filter: blur(4px);
-        }
-        
-        .bg-white\/80 {
-            background-color: rgba(255, 255, 255, 0.8);
-        }
-        
-        /* Hide scrollbar but keep functionality */
-        .hide-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .hide-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+            border-radius: 1rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--color-gray-100);
         }
 
-        /* Dark mode styles */
-        .dark {
-            color-scheme: dark;
-        }
-        
-        .dark .dark\:bg-gray-900 {
-            background-color: rgb(17, 24, 39);
+        .header-card {
+            text-align: center;
+            padding: 1.5rem;
+            position: relative;
         }
 
-        .dark .dark\:text-white {
-            color: rgb(255, 255, 255);
+        .input-card {
+            padding: 1.5rem;
         }
 
-        /* Field type indicators */
+        .main-card {
+            overflow: hidden;
+        }
+
+        /* Headers */
+        .header {
+            font-size: 2.25rem;
+            font-weight: 700;
+            background: linear-gradient(to right, var(--color-blue-600), var(--color-purple-600));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .header-description {
+            color: var(--color-gray-600);
+            margin-top: 0.5rem;
+        }
+
+        /* Flex and Grid */
+        .flex {
+            display: flex;
+        }
+
+        .flex-1 {
+            flex: 1;
+        }
+
+        .flex-col {
+            flex-direction: column;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .justify-center {
+            justify-content: center;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .space-x-1 > * + * {
+            margin-left: 0.25rem;
+        }
+
+        .space-x-2 > * + * {
+            margin-left: 0.5rem;
+        }
+
+        .space-x-3 > * + * {
+            margin-left: 0.75rem;
+        }
+
+        .space-x-4 > * + * {
+            margin-left: 1rem;
+        }
+
+        .grid {
+            display: grid;
+        }
+
+        .grid-cols-2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .divide-x > * + * {
+            border-left: 1px solid var(--color-gray-100);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.375rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: var(--transition-all);
+            transform: scale(1);
+            border: none;
+            outline: none;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn i {
+            width: 1rem;
+            height: 1rem;
+            margin-right: 0.375rem;
+        }
+
+        .btn-default {
+            background-color: var(--color-gray-100);
+            color: var(--color-gray-700);
+        }
+
+        .btn-default:hover {
+            background-color: var(--color-gray-200);
+        }
+
+        .btn-primary {
+            background-color: var(--color-blue-500);
+            color: var(--color-white);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--color-blue-600);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-success {
+            background-color: var(--color-green-500);
+            color: var(--color-white);
+        }
+
+        .btn-success:hover {
+            background-color: var(--color-green-600);
+        }
+
+        .btn-danger {
+            background-color: var(--color-red-500);
+            color: var(--color-white);
+        }
+
+        .btn-danger:hover {
+            background-color: var(--color-red-600);
+        }
+
+        .btn-disabled {
+            background-color: var(--color-gray-100);
+            color: var(--color-gray-400);
+            cursor: not-allowed;
+        }
+
+        /* Form Controls */
+        .input {
+            width: 100%;
+            padding: 1rem;
+            background-color: rgba(249, 250, 251, 0.5);
+            border: 0;
+            border-radius: 0.75rem;
+            font-family: monospace;
+            font-size: 0.875rem;
+            resize: none;
+            transition: var(--transition-all);
+        }
+
+        .input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px var(--color-blue-500);
+        }
+
+        .search-input {
+            position: relative;
+        }
+
+        .search-input input {
+            width: 12rem;
+            padding: 0.375rem 0.75rem;
+            padding-left: 2rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            background-color: var(--color-gray-50);
+            border: 0;
+            outline: none;
+        }
+
+        .search-input input:focus {
+            box-shadow: 0 0 0 2px var(--color-blue-500);
+        }
+
+        .search-input i {
+            position: absolute;
+            left: 0.625rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 1rem;
+            height: 1rem;
+            color: var(--color-gray-400);
+        }
+
+        /* Lists and Items */
+        .field-list-container {
+            background-color: rgba(249, 250, 251, 0.5);
+            border-radius: 0.75rem;
+            padding: 0.5rem;
+        }
+
+        .field-list {
+            max-height: calc(100vh - 600px);
+            overflow-y: auto;
+        }
+
+        .field-item {
+            position: relative;
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0.75rem;
+            margin: 0.25rem 0;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: var(--transition-all);
+        }
+
+        .field-item:hover {
+            background-color: var(--color-white);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .field-item.selected {
+            background-color: var(--color-blue-50);
+        }
+
+        .field-item.selected:hover {
+            background-color: var(--color-blue-100);
+        }
+
+        .field-checkbox {
+            margin-right: 0.5rem;
+            width: 1rem;
+            height: 1rem;
+            border-radius: 0.25rem;
+            border: 1px solid var(--color-gray-300);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-all);
+        }
+
+        .field-item.selected .field-checkbox {
+            background-color: var(--color-blue-500);
+            border-color: var(--color-blue-500);
+        }
+
+        .field-content {
+            flex: 1;
+            font-family: monospace;
+            font-size: 0.875rem;
+            color: var(--color-gray-700);
+            display: flex;
+            align-items: center;
+        }
+
+        .field-chevron {
+            display: inline-block;
+            width: 0.75rem;
+            height: 0.75rem;
+            margin: 0 0.25rem;
+            color: var(--color-gray-400);
+        }
+
+        .field-name {
+            color: var(--color-gray-700);
+        }
+
+        .field-name.last {
+            color: var(--color-blue-600);
+        }
+
+        /* Type indicators */
         .type-indicator {
             padding: 2px 6px;
             border-radius: 4px;
@@ -64,23 +386,132 @@
         .type-array { background: #fce4ec; color: #c2185b; }
         .type-null { background: #fafafa; color: #616161; }
 
-        /* Transition animations */
-        .fade-enter {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-        
-        .fade-enter-active {
-            opacity: 1;
-            transform: translateY(0);
-            transition: opacity 200ms, transform 200ms;
+        /* JSON Preview */
+        .preview-container {
+            position: relative;
         }
 
-        /* Breadcrumb styles */
+        .preview-label {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+            color: var(--color-gray-500);
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+        }
+
+        .preview-content {
+            background-color: rgba(249, 250, 251, 0.5);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            max-height: calc(100vh - 600px);
+            overflow: auto;
+        }
+
+        /* Breadcrumbs */
+        .breadcrumbs {
+            padding: 0.5rem 1.5rem;
+            border-bottom: 1px solid var(--color-gray-100);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--color-gray-600);
+        }
+
+        .breadcrumb-items {
+            display: flex;
+            align-items: center;
+        }
+
+        .breadcrumb-item {
+            cursor: pointer;
+        }
+
+        .breadcrumb-item:hover {
+            color: var(--color-blue-500);
+        }
+
         .breadcrumb-item:not(:last-child)::after {
             content: '/';
             margin: 0 8px;
-            color: #9ca3af;
+            color: var(--color-gray-400);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.125rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge-blue {
+            background-color: var(--color-blue-100);
+            color: var(--color-blue-700);
+        }
+
+        /* Misc */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--color-gray-100);
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 500;
+            color: var(--color-gray-900);
+        }
+
+        .section-content {
+            padding: 1.5rem;
+        }
+
+        .action-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .error-message {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            color: var(--color-red-500);
+            font-size: 0.875rem;
+            background-color: var(--color-red-50);
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .schema-section {
+            margin-top: 1rem;
+        }
+
+        .schema-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--color-gray-700);
         }
 
         /* Loading spinner */
@@ -97,89 +528,268 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* Modal */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 50;
+        }
+
+        .modal-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--color-white);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-lg);
+            max-width: 28rem;
+            width: 100%;
+        }
+
+        .modal-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .shortcut-list {
+            margin-bottom: 1rem;
+        }
+
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .keyboard-shortcut {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background-color: var(--color-gray-100);
+            border-radius: 0.25rem;
+            font-family: monospace;
+        }
+
+        .modal-button {
+            display: block;
+            width: 100%;
+            padding: 0.5rem 1rem;
+            margin-top: 1rem;
+            background-color: var(--color-blue-500);
+            color: var(--color-white);
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+        }
+
+        .modal-button:hover {
+            background-color: var(--color-blue-600);
+        }
+
+        /* Hide scrollbar but keep functionality */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Dark mode */
+        body.dark {
+            background: linear-gradient(to bottom right, var(--color-gray-900), var(--color-gray-800));
+            color: var(--color-white);
+        }
+
+        body.dark .card {
+            background-color: rgba(31, 41, 55, 0.8);
+            border-color: var(--color-gray-700);
+        }
+
+        body.dark .header-description {
+            color: var(--color-gray-400);
+        }
+
+        body.dark .input {
+            background-color: rgba(17, 24, 39, 0.5);
+            color: var(--color-white);
+        }
+
+        body.dark .search-input input {
+            background-color: var(--color-gray-700);
+            color: var(--color-white);
+        }
+
+        body.dark .field-list-container {
+            background-color: rgba(17, 24, 39, 0.5);
+        }
+
+        body.dark .field-item:hover {
+            background-color: var(--color-gray-800);
+        }
+
+        body.dark .field-item.selected {
+            background-color: rgba(30, 58, 138, 0.5);
+        }
+
+        body.dark .field-item.selected:hover {
+            background-color: rgba(30, 58, 138, 0.7);
+        }
+
+        body.dark .field-content {
+            color: var(--color-gray-300);
+        }
+
+        body.dark .field-name {
+            color: var(--color-gray-300);
+        }
+
+        body.dark .field-name.last {
+            color: var(--color-blue-400);
+        }
+
+        body.dark .preview-content {
+            background-color: rgba(17, 24, 39, 0.5);
+        }
+
+        body.dark .preview-label {
+            background-color: rgba(31, 41, 55, 0.8);
+            color: var(--color-gray-400);
+        }
+
+        body.dark .breadcrumbs {
+            border-color: var(--color-gray-700);
+            color: var(--color-gray-400);
+        }
+
+        body.dark .section-header {
+            border-color: var(--color-gray-700);
+        }
+
+        body.dark .section-title {
+            color: var(--color-white);
+        }
+
+        body.dark .divide-x > * + * {
+            border-color: var(--color-gray-700);
+        }
+
+        body.dark .btn-default {
+            background-color: var(--color-gray-700);
+            color: var(--color-gray-300);
+        }
+
+        body.dark .btn-default:hover {
+            background-color: var(--color-gray-600);
+        }
+
+        body.dark .btn-disabled {
+            background-color: var(--color-gray-700);
+            color: var(--color-gray-500);
+        }
+
+        body.dark .keyboard-shortcut {
+            background-color: var(--color-gray-700);
+            color: var(--color-gray-300);
+        }
+
+        body.dark .modal-container {
+            background-color: var(--color-gray-800);
+            color: var(--color-white);
+        }
+
+        body.dark .badge-blue {
+            background-color: var(--color-blue-900);
+            color: var(--color-blue-200);
+        }
     </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 transition-colors duration-200" id="body">
-    <div class="max-w-7xl mx-auto space-y-6">
+<body>
+    <div class="container space-y-6">
         <!-- Header with Theme Toggle -->
-        <div class="text-center bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm relative">
-            <button id="theme-toggle" class="absolute right-6 top-6 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
-                <i icon-name="sun" class="w-5 h-5 hidden dark:inline"></i>
-                <i icon-name="moon" class="w-5 h-5 dark:hidden"></i>
+        <div class="card header-card">
+            <button id="theme-toggle" class="btn btn-default" style="position: absolute; right: 1.5rem; top: 1.5rem; padding: 0.5rem;">
+                <i icon-name="sun" style="width: 1.25rem; height: 1.25rem; margin: 0; display: none;"></i>
+                <i icon-name="moon" style="width: 1.25rem; height: 1.25rem; margin: 0;"></i>
             </button>
-            <h1 class="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
-                JSON Field Editor
-            </h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-2">Modern JSON structure modification tool</p>
+            <h1 class="header">JSON Field Editor</h1>
+            <p class="header-description">Modern JSON structure modification tool</p>
         </div>
 
         <!-- Keyboard Shortcuts Modal -->
-        <div id="shortcuts-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50">
-            <div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg max-w-md w-full">
-                <h3 class="text-lg font-semibold mb-4">Keyboard Shortcuts</h3>
-                                        <div class="space-y-2">>
-                    <div class="flex justify-between">
+        <div id="shortcuts-modal" class="hidden modal-backdrop">
+            <div class="modal-container">
+                <h3 class="modal-title">Keyboard Shortcuts</h3>
+                <div class="shortcut-list">
+                    <div class="shortcut-item">
                         <span>Copy JSON</span>
-                        <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">⌘ + C</kbd>
+                        <span class="keyboard-shortcut">⌘ + C</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="shortcut-item">
                         <span>Undo</span>
-                        <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">⌘ + Z</kbd>
+                        <span class="keyboard-shortcut">⌘ + Z</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="shortcut-item">
                         <span>Search Fields</span>
-                        <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">⌘ + F</kbd>
+                        <span class="keyboard-shortcut">⌘ + F</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="shortcut-item">
                         <span>Toggle Dark Mode</span>
-                        <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">⌘ + D</kbd>
+                        <span class="keyboard-shortcut">⌘ + D</span>
                     </div>
                 </div>
-                <button class="mt-4 w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600" onclick="document.getElementById('shortcuts-modal').classList.add('hidden')">
+                <button class="modal-button" onclick="document.getElementById('shortcuts-modal').classList.add('hidden')">
                     Close
                 </button>
             </div>
         </div>
 
         <!-- Input Panel -->
-        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-gray-100 dark:bg-gray-800/80 dark:border-gray-700">
-            <div class="flex items-center justify-between mb-4">
+        <div class="card input-card">
+            <div class="action-bar">
                 <div class="flex items-center space-x-2">
-                    <i icon-name="code" class="w-5 h-5 text-blue-500"></i>
-                    <span class="font-medium text-gray-900 dark:text-white">Input JSON</span>
+                    <i icon-name="code" style="width: 1.25rem; height: 1.25rem; color: var(--color-blue-500);"></i>
+                    <span style="font-weight: 500; color: var(--color-gray-900);">Input JSON</span>
                 </div>
                 <div class="flex space-x-2">
-                    <button id="format-button" class="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-gray-100 hover:bg-gray-200 text-gray-700">
-                        <i icon-name="type" class="w-4 h-4 mr-1.5"></i>
+                    <button id="format-button" class="btn btn-default">
+                        <i icon-name="type"></i>
                         Format
                     </button>
-                    <button id="validate-button" class="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-gray-100 hover:bg-gray-200 text-gray-700">
-                        <i icon-name="check-circle" class="w-4 h-4 mr-1.5"></i>
+                    <button id="validate-button" class="btn btn-default">
+                        <i icon-name="check-circle"></i>
                         Validate
                     </button>
                 </div>
-                <div id="error-message" class="hidden flex items-center space-x-1 text-red-500 text-sm bg-red-50 px-2 py-1 rounded-full">
-                    <i icon-name="x" class="w-4 h-4"></i>
+                <div id="error-message" class="hidden error-message">
+                    <i icon-name="x"></i>
                     <span></span>
                 </div>
             </div>
             
             <textarea
                 id="json-input"
-                class="w-full h-48 p-4 bg-gray-50/50 border-0 rounded-xl font-mono text-sm resize-none focus:ring-2 focus:ring-blue-500 transition-all dark:bg-gray-900/50 dark:text-white"
+                class="input"
+                style="height: 12rem;"
                 placeholder="Paste your JSON here..."
                 spellcheck="false"
             >{"name": "John Doe","job": "QA Lead","details": {"location": "New York"}}</textarea>
 
             <!-- Schema Input -->
-            <div class="mt-4 hidden" id="schema-input-container">
-                <div class="flex items-center space-x-2 mb-2">
-                    <i icon-name="file-json" class="w-4 h-4 text-blue-500"></i>
-                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">JSON Schema (optional)</span>
+            <div class="hidden schema-section" id="schema-input-container">
+                <div class="schema-title">
+                    <i icon-name="file-json" style="width: 1rem; height: 1rem; color: var(--color-blue-500);"></i>
+                    <span>JSON Schema (optional)</span>
                 </div>
                 <textarea
                     id="schema-input"
-                    class="w-full h-24 p-4 bg-gray-50/50 border-0 rounded-xl font-mono text-sm resize-none focus:ring-2 focus:ring-blue-500 transition-all dark:bg-gray-900/50 dark:text-white"
+                    class="input"
+                    style="height: 6rem;"
                     placeholder="Paste your JSON Schema here for validation..."
                     spellcheck="false"
                 ></textarea>
@@ -187,76 +797,75 @@
         </div>
 
         <!-- Fields and Preview Grid -->
-        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border border-gray-100 dark:bg-gray-800/80 dark:border-gray-700">
+        <div class="card main-card">
             <!-- Action Bar -->
-            <div class="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700">
-                <div class="flex items-center space-x-3">
-                    <span class="font-medium text-gray-900 dark:text-white">Fields & Preview</span>
-                    <span id="fields-count" class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs dark:bg-blue-900 dark:text-blue-200">
+            <div class="section-header">
+                <div class="section-title">
+                    <span>Fields & Preview</span>
+                    <span id="fields-count" class="badge badge-blue">
                         0 fields
                     </span>
                 </div>
                 
                 <div class="flex items-center space-x-4">
                     <!-- Search Input -->
-                    <div class="relative">
+                    <div class="search-input">
                         <input
                             type="text"
                             id="search-input"
                             placeholder="Search fields..."
-                            class="w-48 px-3 py-1.5 pl-8 rounded-full text-sm bg-gray-50 border-0 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                         />
-                        <i icon-name="search" class="w-4 h-4 absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <i icon-name="search"></i>
                     </div>
 
                     <div class="flex space-x-2">
                         <button
                             id="select-all-button"
-                            class="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-green-500 hover:bg-green-600 text-white"
+                            class="btn btn-success"
                         >
-                            <i icon-name="check-circle" class="w-4 h-4 mr-1.5"></i>
+                            <i icon-name="check-circle"></i>
                             Select All
                         </button>
 
                         <button
                             id="clear-all-button"
-                            class="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-red-500 hover:bg-red-600 text-white"
+                            class="btn btn-danger"
                         >
-                            <i icon-name="x-circle" class="w-4 h-4 mr-1.5"></i>
+                            <i icon-name="x-circle"></i>
                             Clear All
                         </button>
 
                         <button
                             id="shortcuts-button"
-                            class="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                            class="btn btn-default"
                         >
-                            <i icon-name="keyboard" class="w-4 h-4 mr-1.5"></i>
+                            <i icon-name="keyboard"></i>
                             Shortcuts
                         </button>
 
                         <button
                             id="multi-select-button"
-                            class="inline-flex items-center px-3 py-1.5 rounded-full text-sm transition-all bg-gray-100 hover:bg-gray-200 text-gray-700"
+                            class="btn btn-default"
                         >
-                            <i icon-name="layers" class="w-4 h-4 mr-1.5"></i>
+                            <i icon-name="layers"></i>
                             Multi-Select
                         </button>
 
                         <button
                             id="undo-button"
                             disabled
-                            class="inline-flex items-center px-3 py-1.5 rounded-full text-sm transition-all bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500"
+                            class="btn btn-disabled"
                         >
-                            <i icon-name="rotate-ccw" class="w-4 h-4 mr-1.5"></i>
+                            <i icon-name="rotate-ccw"></i>
                             Undo
                         </button>
                         
                         <button
                             id="copy-button"
                             disabled
-                            class="inline-flex items-center px-3 py-1.5 rounded-full text-sm transition-all duration-200 transform active:scale-95 bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500"
+                            class="btn btn-disabled"
                         >
-                            <i icon-name="copy" class="w-4 h-4 mr-1.5"></i>
+                            <i icon-name="copy"></i>
                             <span>Copy JSON</span>
                         </button>
                     </div>
@@ -264,33 +873,33 @@
             </div>
 
             <!-- Breadcrumbs -->
-            <div class="px-6 py-2 border-b border-gray-100 dark:border-gray-700 flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400" id="breadcrumbs">
-                <i icon-name="folder" class="w-4 h-4"></i>
-                <div class="flex items-center" id="breadcrumb-items">
+            <div class="breadcrumbs" id="breadcrumbs">
+                <i icon-name="folder" style="width: 1rem; height: 1rem;"></i>
+                <div class="breadcrumb-items" id="breadcrumb-items">
                     <span class="breadcrumb-item">root</span>
                 </div>
             </div>
 
             <!-- Two Column Layout -->
-            <div class="grid grid-cols-2 divide-x divide-gray-100 dark:divide-gray-700">
+            <div class="grid grid-cols-2 divide-x">
                 <!-- Fields List -->
-                <div class="p-6">
-                    <div class="bg-gray-50/50 rounded-xl p-2 dark:bg-gray-900/50">
-                        <div id="fields-list" class="max-h-[calc(100vh-600px)] overflow-y-auto hide-scrollbar">
+                <div class="section-content">
+                    <div class="field-list-container">
+                        <div id="fields-list" class="field-list hide-scrollbar">
                             <!-- Fields will be inserted here -->
                         </div>
                     </div>
                 </div>
 
                 <!-- JSON Preview -->
-                <div class="p-6">
-                    <div class="relative">
-                        <div class="absolute top-2 right-2 flex items-center space-x-1 text-xs text-gray-500 bg-white/80 px-2 py-1 rounded-full dark:bg-gray-800/80 dark:text-gray-400">
-                            <i icon-name="eye" class="w-3 h-3"></i>
+                <div class="section-content">
+                    <div class="preview-container">
+                        <div class="preview-label">
+                            <i icon-name="eye" style="width: 0.75rem; height: 0.75rem;"></i>
                             <span>Preview</span>
                         </div>
-                        <div class="bg-gray-50/50 rounded-xl p-4 max-h-[calc(100vh-600px)] overflow-auto hide-scrollbar dark:bg-gray-900/50">
-                            <pre id="json-preview" class="text-sm font-mono text-white"></pre>
+                        <div class="preview-content hide-scrollbar">
+                            <pre id="json-preview" style="font-family: monospace; font-size: 0.875rem;"></pre>
                         </div>
                     </div>
                 </div>
@@ -312,6 +921,7 @@
         let isDarkMode = false;
         let isMultiSelectMode = false;
         let lastSelectedKey = null;
+        let activeKeys = new Set();
 
         // DOM Elements
         const jsonInput = document.getElementById('json-input');
@@ -328,6 +938,7 @@
         const themeToggle = document.getElementById('theme-toggle');
         const shortcutsButton = document.getElementById('shortcuts-button');
         const breadcrumbItems = document.getElementById('breadcrumb-items');
+        const multiSelectButton = document.getElementById('multi-select-button');
 
         // Initialize Sortable
         new Sortable(fieldsList, {
@@ -417,7 +1028,7 @@
             
             paths.forEach((path, index) => {
                 const span = document.createElement('span');
-                span.className = 'breadcrumb-item cursor-pointer hover:text-blue-500';
+                span.className = 'breadcrumb-item';
                 span.textContent = path;
                 span.onclick = () => {
                     currentPath = paths.slice(1, index);
@@ -432,25 +1043,17 @@
             const div = document.createElement('div');
             const isSelected = selectedKeys.has(key);
             
-            div.className = `group relative flex items-center px-3 py-2 my-1 rounded-lg cursor-pointer transition-all hover:shadow-sm ${
-                isSelected 
-                    ? 'bg-blue-50 dark:bg-blue-900/50 hover:bg-blue-100 dark:hover:bg-blue-900/70' 
-                    : 'hover:bg-white dark:hover:bg-gray-800'
-            }`;
+            div.className = isSelected ? 'field-item selected' : 'field-item';
             
             const keyParts = key.split('.');
             const keyContent = document.createElement('div');
-            keyContent.className = 'flex-1 font-mono text-sm text-gray-700 dark:text-gray-300 flex items-center';
+            keyContent.className = 'field-content';
 
             // Selection indicator
             const checkbox = document.createElement('div');
-            checkbox.className = `mr-2 w-4 h-4 rounded border ${
-                isSelected 
-                    ? 'bg-blue-500 border-blue-500' 
-                    : 'border-gray-300 dark:border-gray-600'
-            } flex items-center justify-center transition-colors`;
+            checkbox.className = 'field-checkbox';
             if (isSelected) {
-                checkbox.innerHTML = '<i icon-name="check" class="w-3 h-3 text-white"></i>';
+                checkbox.innerHTML = '<i icon-name="check" style="width: 0.75rem; height: 0.75rem; color: white;"></i>';
             }
             keyContent.appendChild(checkbox);
 
@@ -458,12 +1061,12 @@
                 if (i > 0) {
                     const chevron = document.createElement('i');
                     chevron.setAttribute('icon-name', 'chevron-right');
-                    chevron.className = 'inline w-3 h-3 mx-1 text-gray-400';
+                    chevron.className = 'field-chevron';
                     keyContent.appendChild(chevron);
                 }
                 
                 const span = document.createElement('span');
-                span.className = i === keyParts.length - 1 ? 'text-blue-600 dark:text-blue-400' : '';
+                span.className = i === keyParts.length - 1 ? 'field-name last' : 'field-name';
                 span.textContent = part;
                 keyContent.appendChild(span);
             });
@@ -582,18 +1185,10 @@
             
             // Update button states
             undoButton.disabled = history.length <= 1;
-            undoButton.className = `inline-flex items-center px-3 py-1.5 rounded-full text-sm transition-all ${
-                history.length <= 1 
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 hover:shadow-sm dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300'
-            }`;
+            undoButton.className = history.length <= 1 ? 'btn btn-disabled' : 'btn btn-default';
             
-            copyButton.disabled = !currentJson;
-            copyButton.className = `inline-flex items-center px-3 py-1.5 rounded-full text-sm transition-all duration-200 transform active:scale-95 ${
-                !currentJson 
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
-                    : 'bg-blue-500 hover:bg-blue-600 text-white hover:shadow-md'
-            }`;
+            copyButton.disabled = !currentJson || Object.keys(currentJson).length === 0;
+            copyButton.className = (!currentJson || Object.keys(currentJson).length === 0) ? 'btn btn-disabled' : 'btn btn-primary';
 
             // Refresh icons
             lucide.createIcons();
@@ -642,6 +1237,19 @@
         function toggleDarkMode() {
             isDarkMode = !isDarkMode;
             document.body.classList.toggle('dark');
+
+            // Update sun/moon icons
+            const sunIcon = themeToggle.querySelector('[icon-name="sun"]');
+            const moonIcon = themeToggle.querySelector('[icon-name="moon"]');
+            
+            if (isDarkMode) {
+                sunIcon.style.display = 'inline';
+                moonIcon.style.display = 'none';
+            } else {
+                sunIcon.style.display = 'none';
+                moonIcon.style.display = 'inline';
+            }
+            
             updateUI();
         }
 
@@ -751,22 +1359,33 @@
                 
                 const originalContent = copyButton.innerHTML;
                 copyButton.innerHTML = `
-                    <i icon-name="check" class="w-4 h-4 mr-1.5"></i>
+                    <i icon-name="check"></i>
                     <span>Copied!</span>
                 `;
-                copyButton.className = 'inline-flex items-center px-3 py-1.5 rounded-full text-sm transition-all duration-200 bg-green-500 text-white';
+                copyButton.className = 'btn btn-success';
                 lucide.createIcons();
                 
                 if (copyTimeout) clearTimeout(copyTimeout);
                 
                 copyTimeout = setTimeout(() => {
                     copyButton.innerHTML = originalContent;
-                    copyButton.className = 'inline-flex items-center px-3 py-1.5 rounded-full text-sm transition-all duration-200 bg-blue-500 hover:bg-blue-600 text-white hover:shadow-md';
+                    copyButton.className = 'btn btn-primary';
                     lucide.createIcons();
                 }, 2000);
             } catch (err) {
                 console.error('Failed to copy:', err);
                 showError('Failed to copy to clipboard');
+            }
+        });
+
+        // Toggle multi-select mode
+        multiSelectButton.addEventListener('click', (e) => {
+            isMultiSelectMode = !isMultiSelectMode;
+            
+            if (isMultiSelectMode) {
+                multiSelectButton.className = 'btn btn-primary';
+            } else {
+                multiSelectButton.className = 'btn btn-default';
             }
         });
 
@@ -783,12 +1402,6 @@
             updateUI();
         });
 
-        document.getElementById('multi-select-button').addEventListener('click', (e) => {
-            const button = e.currentTarget;
-            isMultiSelectMode = !isMultiSelectMode;
-            button.classList.toggle('bg-blue-500');
-            button.classList.toggle('text-white')
-        });
         // Show schema input on validate button click
         validateButton.addEventListener('click', () => {
             document.getElementById('schema-input-container').classList.remove('hidden');
